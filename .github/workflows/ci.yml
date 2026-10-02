@@ -13,6 +13,14 @@ jobs:
       - run: uv run ruff check .
       - run: uv run mypy src
       - run: uv run pytest -m "not postgres and not live"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.4
+      - run: terraform fmt -check -recursive infra
+      - working-directory: infra/staging
+        run: terraform init -backend=false -input=false
+      - working-directory: infra/staging
+        run: terraform validate
   postgres:
     runs-on: ubuntu-latest
     services:

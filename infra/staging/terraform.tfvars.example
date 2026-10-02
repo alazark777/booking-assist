@@ -1,0 +1,17 @@
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+location               = "eastus"
+resource_group_name    = "booking-assist-staging"
+name_prefix            = "booking-assist"
+environment             = "staging"
+booking_writes_enabled = false
+
+# Supply this through TF_VAR_google_api_key or a GitHub Environment secret.
+google_api_key = "replace_me"
+
+# Keep demo credentials only for a private staging environment.
+service_credentials = "alice-token=customer-a,bob-token=customer-b"
+
+# Set these only when Langfuse tracing is intentionally enabled.
+langfuse_tracing_enabled = false
+langfuse_public_key      = ""
+langfuse_secret_key      = ""

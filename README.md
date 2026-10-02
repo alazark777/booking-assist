@@ -98,6 +98,14 @@ GOOGLE_API_KEY=... uv run python evals/run_live.py --case-file evals/cases.jsonl
 `evals/cases.jsonl` contains stateful expectations, not just expected sentences. Passing the small
 suite is a smoke check, not production readiness.
 
+## Automated Azure staging
+
+The staging deployment uses Terraform, Azure Container Apps, PostgreSQL Flexible
+Server, Azure Container Registry, Key Vault, and GitHub Actions OIDC. The
+complete setup, permissions, secret handling, migration flow, rollback, and
+teardown instructions are in
+[docs/deployment-staging.md](docs/deployment-staging.md).
+
 ## Design and boundaries
 
 See [docs/architecture.md](docs/architecture.md) for the request flow, Google function-calling

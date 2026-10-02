@@ -1,0 +1,150 @@
+name: deploy-staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: booking-assist-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.outputs.outputs.app_url }}
+    env:
+      ARM_USE_OIDC: true
+      ARM_USE_AZUREAD: true
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID_APPLY }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_IN_AUTOMATION: true
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+      TF_VAR_service_credentials: ${{ secrets.SERVICE_CREDENTIALS }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform init
+        working-directory: infra/staging
+        run: |
+          terraform init -input=false \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=booking-assist/staging.tfstate" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Create base infrastructure if needed
+        id: base
+        working-directory: infra/staging
+        run: |
+          if terraform output -raw acr_login_server >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            terraform apply -input=false -auto-approve -lock-timeout=5m \
+              -var-file=terraform.tfvars.example \
+              -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+              -var="google_api_key=${{ secrets.GOOGLE_API_KEY }}" \
+              -var="container_image=mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read registry name
+        id: registry
+        working-directory: infra/staging
+        run: |
+          echo "name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name "${{ steps.registry.outputs.name }}"
+
+      - name: Build and push immutable image
+        env:
+          IMAGE: ${{ steps.registry.outputs.server }}/booking-assist:${{ github.sha }}
+        run: |
+          docker build --tag "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Apply application infrastructure
+        working-directory: infra/staging
+        run: |
+          terraform apply -input=false -auto-approve -lock-timeout=5m \
+            -var-file=terraform.tfvars.example \
+            -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+            -var="google_api_key=${{ secrets.GOOGLE_API_KEY }}" \
+            -var="container_image=${IMAGE}"
+
+      - name: Run migrations and seed
+        id: migration
+        working-directory: infra/staging
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          job_name="$(terraform output -raw migration_job_name)"
+          execution_name="$(az containerapp job start \
+            --name "$job_name" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query name -o tsv)"
+          echo "Started migration execution: $execution_name"
+
+          for attempt in {1..60}; do
+            status="$(az containerapp job execution show \
+              --name "$job_name" \
+              --resource-group "$RESOURCE_GROUP" \
+              --job-execution-name "$execution_name" \
+              --query properties.status -o tsv 2>/dev/null || true)"
+            case "$status" in
+              Succeeded)
+                exit 0
+                ;;
+              Failed|Degraded|Stopped)
+                echo "Migration execution ended with status: $status" >&2
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "Migration execution did not finish within the expected time." >&2
+          exit 1
+
+      - name: Verify staging
+        id: outputs
+        working-directory: infra/staging
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          app_url="$(terraform output -raw container_app_url)"
+          echo "app_url=$app_url" >> "$GITHUB_OUTPUT"
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error "$app_url/health/live" \
+              && curl --fail --silent --show-error "$app_url/health/ready"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          az containerapp show \
+            --name "$(terraform output -raw container_app_name)" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.latestRevisionName -o tsv
+          exit 1
