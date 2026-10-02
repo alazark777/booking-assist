@@ -148,7 +148,7 @@ terraform init \
   -backend-config="resource_group_name=$TF_STATE_RESOURCE_GROUP" \
   -backend-config="storage_account_name=$TF_STATE_STORAGE_ACCOUNT" \
   -backend-config="container_name=$TF_STATE_CONTAINER" \
-  -backend-config="key=booking-assist/staging.tfstate" \
+  -backend-config="key=booking-assist/staging-westus3.tfstate" \
   -backend-config="use_azuread_auth=true"
 
 export TF_VAR_subscription_id="<YOUR_SUBSCRIPTION_ID>"
