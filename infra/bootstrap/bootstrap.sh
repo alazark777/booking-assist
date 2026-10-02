@@ -19,6 +19,17 @@ done
 
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
+for provider_namespace in \
+  Microsoft.App \
+  Microsoft.ContainerRegistry \
+  Microsoft.DBforPostgreSQL \
+  Microsoft.KeyVault \
+  Microsoft.Network \
+  Microsoft.OperationalInsights \
+  Microsoft.Storage; do
+  az provider register --namespace "$provider_namespace" --wait >/dev/null
+done
+
 repository_owner="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.owner.login')"
 repository_owner_id="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.owner.id')"
 repository_name="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.name')"
