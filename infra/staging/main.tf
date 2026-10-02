@@ -128,6 +128,7 @@ resource "azurerm_postgresql_flexible_server" "database" {
   administrator_password        = local.postgres_password
   storage_mb                    = 32768
   sku_name                      = var.postgres_sku_name
+  zone                          = "1"
   backup_retention_days         = 7
   geo_redundant_backup_enabled  = false
 
