@@ -13,6 +13,7 @@ first run.
 ## Prerequisites
 
 - Azure CLI installed and authenticated with `az login`;
+- GitHub CLI installed and authenticated with `gh auth login`;
 - permission to create resource groups, storage accounts, app registrations,
   service principals, and role assignments;
 - the GitHub repository name in `owner/name` form.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-required_commands=(az)
+required_commands=(az gh)
 for command_name in "${required_commands[@]}"; do
   command -v "$command_name" >/dev/null || {
     printf 'Missing required command: %s\n' "$command_name" >&2
@@ -18,6 +18,12 @@ done
 : "${APPLICATION_RESOURCE_GROUP:=booking-assist-staging}"
 
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+repository_owner="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.owner.login')"
+repository_owner_id="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.owner.id')"
+repository_name="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.name')"
+repository_id="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.id')"
+oidc_subject_prefix="repo:${repository_owner}@${repository_owner_id}/${repository_name}@${repository_id}"
 
 state_storage_account="${STATE_STORAGE_ACCOUNT:-bookingassiststate$(printf '%s' "$AZURE_SUBSCRIPTION_ID" | tr -d '-' | cut -c1-6)}"
 for value in "$state_storage_account" "$STATE_RESOURCE_GROUP" "$STATE_CONTAINER"; do
@@ -64,7 +70,9 @@ create_oidc_identity() {
   local name="$1"
   local subject="$2"
   local app_id
+  local credential_name
   local service_principal_id
+  local subject_hash
 
   app_id="$(az ad app list --display-name "$name" --query '[0].appId' -o tsv)"
   if [[ -z "$app_id" ]]; then
@@ -76,16 +84,22 @@ create_oidc_identity() {
   fi
 
   service_principal_id="$(az ad sp show --id "$app_id" --query id -o tsv)"
+  if command -v sha256sum >/dev/null; then
+    subject_hash="$(printf '%s' "$subject" | sha256sum | cut -c1-8)"
+  else
+    subject_hash="$(printf '%s' "$subject" | shasum -a 256 | cut -c1-8)"
+  fi
+  credential_name="github-${name// /-}-${subject_hash}"
   az ad app federated-credential create \
     --id "$app_id" \
-    --parameters "{\"name\":\"github-${name// /-}\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${subject}\",\"audiences\":[\"api://AzureADTokenExchange\"]}" \
+    --parameters "{\"name\":\"${credential_name}\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${subject}\",\"audiences\":[\"api://AzureADTokenExchange\"]}" \
     >/dev/null 2>&1 || true
 
   printf '%s\t%s\t%s\n' "$name" "$app_id" "$service_principal_id"
 }
 
-plan_identity="$(create_oidc_identity "booking-assist-staging-plan" "repo:${GITHUB_REPOSITORY}:pull_request")"
-apply_identity="$(create_oidc_identity "booking-assist-staging-apply" "repo:${GITHUB_REPOSITORY}:environment:staging")"
+plan_identity="$(create_oidc_identity "booking-assist-staging-plan" "${oidc_subject_prefix}:pull_request")"
+apply_identity="$(create_oidc_identity "booking-assist-staging-apply" "${oidc_subject_prefix}:environment:staging")"
 
 plan_client_id="$(printf '%s' "$plan_identity" | cut -f2)"
 plan_principal_id="$(printf '%s' "$plan_identity" | cut -f3)"

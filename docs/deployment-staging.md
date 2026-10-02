@@ -31,6 +31,7 @@ create the identity it uses to authenticate itself.
 
 ```bash
 az login
+gh auth login
 az account list -o table
 az account set --subscription "<YOUR_SUBSCRIPTION_ID>"
 ```

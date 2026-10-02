@@ -57,7 +57,8 @@ jobs:
         id: base
         working-directory: infra/staging
         run: |
-          if terraform output -raw acr_login_server >/dev/null 2>&1; then
+          acr_login_server="$(terraform output -raw acr_login_server 2>/dev/null || true)"
+          if [[ -n "$acr_login_server" ]]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             terraform apply -input=false -auto-approve -lock-timeout=5m \
