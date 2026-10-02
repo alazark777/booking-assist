@@ -103,8 +103,33 @@ This avoids the circular dependency where the Container App needs an image from
 an ACR that Terraform has not created yet. Later deployments build the image
 first and update the existing stack directly.
 
-After the environment variables and secrets exist, push to `main` or start
-`deploy-staging` manually from the GitHub Actions tab.
+After the environment variables and secrets exist, deployment is automatic:
+every push to `main` starts `deploy-staging`.
+
+You can also start the same deployment manually from a terminal:
+
+```bash
+gh workflow run deploy-staging.yml \
+  --repo alazark777/booking-assist \
+  --ref main
+```
+
+Watch the run:
+
+```bash
+gh run watch --repo alazark777/booking-assist
+```
+
+List recent runs:
+
+```bash
+gh run list --repo alazark777/booking-assist --limit 5
+```
+
+The workflow will fail at Azure login if the OIDC client IDs are still
+placeholders, or at the application step if `GOOGLE_API_KEY` is still a
+placeholder. After correcting a value, rerun the workflow manually; no code
+change is required.
 
 ## Local Terraform workflow
 
