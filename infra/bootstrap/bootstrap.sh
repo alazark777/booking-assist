@@ -19,7 +19,7 @@ done
 
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
-state_storage_account="${STATE_STORAGE_ACCOUNT:-bookingassiststate$(printf '%s' "$AZURE_SUBSCRIPTION_ID" | tr -d '-' | cut -c1-8)}"
+state_storage_account="${STATE_STORAGE_ACCOUNT:-bookingassiststate$(printf '%s' "$AZURE_SUBSCRIPTION_ID" | tr -d '-' | cut -c1-6)}"
 for value in "$state_storage_account" "$STATE_RESOURCE_GROUP" "$STATE_CONTAINER"; do
   if [[ "$value" =~ [A-Z] || "$value" =~ [^a-zA-Z0-9-] ]]; then
     printf 'Invalid Azure resource name: %s\n' "$value" >&2
