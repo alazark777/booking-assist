@@ -6,13 +6,13 @@ variable "subscription_id" {
 variable "location" {
   description = "Azure region for the staging resources."
   type        = string
-  default     = "eastus"
+  default     = "westus3"
 }
 
 variable "resource_group_name" {
   description = "Resource group containing the staging application."
   type        = string
-  default     = "booking-assist-staging"
+  default     = "booking-assist-staging-westus3"
 }
 
 variable "name_prefix" {

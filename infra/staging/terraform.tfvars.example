@@ -1,7 +1,7 @@
 subscription_id        = "00000000-0000-0000-0000-000000000000"
-location               = "eastus"
-resource_group_name    = "booking-assist-staging"
-name_prefix            = "booking-assist"
+location               = "westus3"
+resource_group_name    = "booking-assist-staging-westus3"
+name_prefix            = "bookassist-w3"
 environment             = "staging"
 booking_writes_enabled = false
 

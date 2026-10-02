@@ -15,7 +15,7 @@ done
 : "${STATE_RESOURCE_GROUP:=booking-assist-tfstate}"
 : "${STATE_LOCATION:=eastus}"
 : "${STATE_CONTAINER:=tfstate}"
-: "${APPLICATION_RESOURCE_GROUP:=booking-assist-staging}"
+: "${APPLICATION_RESOURCE_GROUP:=booking-assist-staging-westus3}"
 
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 

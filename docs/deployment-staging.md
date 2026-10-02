@@ -22,6 +22,11 @@ The API runs on Azure Container Apps. PostgreSQL Flexible Server is private to
 the virtual network. Secrets are stored in Key Vault and referenced by the
 Container App through managed identities.
 
+The example staging stack uses `westus3` because this subscription currently
+restricts PostgreSQL Flexible Server provisioning in `eastus`. Change the
+location only after confirming PostgreSQL capacity for the subscription with
+`az postgres flexible-server list-skus --location <REGION>`.
+
 ## One-time setup
 
 The first setup needs an Azure operator because the deployment pipeline cannot
@@ -161,7 +166,7 @@ temporary shell environment or a private untracked `.tfvars` file.
 
 ```bash
 az containerapp list \
-  --resource-group booking-assist-staging \
+  --resource-group booking-assist-staging-westus3 \
   -o table
 
 terraform -chdir=infra/staging output
@@ -174,7 +179,7 @@ View API logs:
 ```bash
 az containerapp logs show \
   --name "<CONTAINER_APP_NAME>" \
-  --resource-group booking-assist-staging \
+  --resource-group booking-assist-staging-westus3 \
   --follow
 ```
 
