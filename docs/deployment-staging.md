@@ -44,10 +44,16 @@ export GITHUB_REPOSITORY=alazark777/booking-assist
 export AZURE_SUBSCRIPTION_ID="<YOUR_SUBSCRIPTION_ID>"
 export AZURE_TENANT_ID="<YOUR_TENANT_ID>"
 bash infra/bootstrap/bootstrap.sh
+bash scripts/configure-github-staging.sh .staging-bootstrap.env .env
 ```
 
-The bootstrap prints the values needed by the GitHub `staging` environment.
-Create these as GitHub Actions variables at:
+The first script writes machine-readable values to
+`.staging-bootstrap.env`. The second script creates/updates the GitHub
+`staging` environment in one command, sets all variables, and reads the local
+Google key without printing it. If the local key is unavailable, it writes a
+placeholder that must be replaced before deployment.
+
+You can also configure the environment manually at:
 
 `Settings -> Environments -> staging -> Environment variables`
 

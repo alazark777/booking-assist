@@ -29,9 +29,20 @@ export AZURE_TENANT_ID="<YOUR_TENANT_ID>"
 bash infra/bootstrap/bootstrap.sh
 ```
 
-The script is idempotent for the resource names it controls. It prints the
-client IDs and Terraform backend values needed by the GitHub `staging`
-environment. Store those as GitHub variables, not as repository files.
+The script is idempotent for the resource names it controls. It writes the
+client IDs and Terraform backend values to `.staging-bootstrap.env`, protected
+with local mode `600`. That file is ignored by Git.
+
+Configure GitHub in one command:
+
+```bash
+bash scripts/configure-github-staging.sh .staging-bootstrap.env .env
+```
+
+The second script creates/updates the GitHub `staging` environment, sets all
+variables, and loads `GOOGLE_API_KEY` from `.env` without printing it. If `.env`
+does not contain a key, it writes a visible placeholder so deployment cannot
+silently use a missing secret.
 
 ## Permissions
 

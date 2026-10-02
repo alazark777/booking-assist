@@ -26,6 +26,10 @@ for value in "$state_storage_account" "$STATE_RESOURCE_GROUP" "$STATE_CONTAINER"
     exit 1
   fi
 done
+if [[ ! "$state_storage_account" =~ ^[a-z0-9]{3,24}$ ]]; then
+  printf 'STATE_STORAGE_ACCOUNT must be 3-24 lowercase letters or numbers: %s\n' "$state_storage_account" >&2
+  exit 1
+fi
 
 az group create \
   --name "$STATE_RESOURCE_GROUP" \
@@ -127,8 +131,23 @@ az role assignment create \
   --scope "$state_scope" \
   >/dev/null 2>&1 || true
 
+bootstrap_output_file="${BOOTSTRAP_OUTPUT_FILE:-.staging-bootstrap.env}"
+umask 077
+cat > "$bootstrap_output_file" <<EOF
+AZURE_CLIENT_ID_APPLY=$apply_client_id
+AZURE_CLIENT_ID_PLAN=$plan_client_id
+AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID
+AZURE_TENANT_ID=$AZURE_TENANT_ID
+TF_STATE_RESOURCE_GROUP=$STATE_RESOURCE_GROUP
+TF_STATE_STORAGE_ACCOUNT=$state_storage_account
+TF_STATE_CONTAINER=$STATE_CONTAINER
+AZURE_RESOURCE_GROUP=$APPLICATION_RESOURCE_GROUP
+EOF
+
 cat <<EOF
 Bootstrap complete.
+
+Machine-readable values were written to: $bootstrap_output_file
 
 Configure these GitHub repository/environment variables:
   AZURE_CLIENT_ID_PLAN=$plan_client_id
