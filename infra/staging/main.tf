@@ -407,7 +407,7 @@ resource "azurerm_container_app" "api" {
 }
 
 resource "azurerm_container_app_job" "migration" {
-  name                         = "${local.base_name}-migration"
+  name                         = "${local.base_name}-mig"
   location                     = azurerm_resource_group.staging.location
   resource_group_name          = azurerm_resource_group.staging.name
   container_app_environment_id = azurerm_container_app_environment.staging.id
