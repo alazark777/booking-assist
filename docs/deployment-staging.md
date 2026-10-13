@@ -87,14 +87,27 @@ resources use Key Vault references because secret resource values may be stored
 in state. The bootstrap enables HTTPS, private blobs, versioning, and retention
 for the state account.
 
-### 3. Review Azure permissions
+### 3. Harden Azure permissions after the first deploy
 
-The bootstrap gives the apply identity broad permissions for the first apply:
-`Contributor`, `User Access Administrator`, and state storage access. Terraform
-needs this because it creates managed identities and their role assignments.
-After the first successful deployment, review the assignments and reduce them
-to the staging resource group and the exact role-assignment scopes approved by
-your organization.
+The bootstrap gives the apply identity temporary subscription-wide
+`Contributor` and `User Access Administrator` so Terraform can create the
+staging resource group and managed-identity role assignments.
+
+After the first successful deployment, narrow those roles to the staging
+resource group:
+
+```bash
+bash scripts/harden-staging-oidc.sh
+```
+
+The hardening script reads the live GitHub `staging` environment values and:
+
+- grants `Contributor` and `User Access Administrator` on `AZURE_RESOURCE_GROUP`
+- keeps `Storage Blob Data Contributor` on the Terraform state storage account
+- removes subscription-wide `Contributor` and `User Access Administrator`
+
+If the Azure subscription is disabled or read-only, role writes may fail. Re-run
+the same script after the subscription is re-enabled, before the next deploy.
 
 ## First deployment
 

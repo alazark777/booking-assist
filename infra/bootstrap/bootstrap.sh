@@ -186,5 +186,7 @@ Configure these GitHub repository/environment variables:
 
 The apply identity is intentionally broad during bootstrap because Terraform
 creates the application resource group and managed-identity role assignments.
-Review and reduce its scope after the first successful deployment.
+After the first successful deployment, run:
+
+  bash scripts/harden-staging-oidc.sh
 EOF
