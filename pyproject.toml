@@ -1,7 +1,7 @@
 [project]
 name = "appointment-assistant"
 version = "0.1.0"
-description = "A small Google Gemini-backed appointment assistant with a mocked scheduler."
+description = "A small booking assistant HTTP service with a mocked scheduler."
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.16,<2",
@@ -33,7 +33,7 @@ dev = [
 asyncio_mode = "auto"
 markers = [
   "postgres: requires a PostgreSQL database",
-  "live: explicitly opt-in real Gemini evaluation",
+  "live: explicitly opt-in live model evaluation",
 ]
 
 [tool.ruff]

@@ -1,16 +1,17 @@
-# Google Gemini Appointment Assistant
+# Booking Assist
 
-This is a small, runnable Python HTTP service for learning agent deployment. It uses a real Google
-Gemini call and a PostgreSQL-backed synthetic scheduler. The scheduler is intentionally mocked; the
-model call, authentication boundary, persistence, migrations, limits, and tests are real.
+A small, runnable Python HTTP service for learning agent deployment. It exposes a chat API that
+helps users find and confirm synthetic appointments. The scheduler is intentionally mocked; the
+authentication boundary, persistence, migrations, operational limits, and tests are real.
 
 ## Quick start
 
-Requirements: Python 3.12+, `uv`, Docker, and a Google AI API key.
+Requirements: Python 3.12+, `uv`, Docker or Podman, and an LLM API key for the configured model
+provider.
 
 ```bash
 cp .env.example .env
-# edit GOOGLE_API_KEY in .env
+# edit the provider API key in .env
 uv sync --dev
 docker compose up --build
 ```
@@ -51,11 +52,9 @@ uv run python -m appointment_assistant.seed
 uv run uvicorn appointment_assistant.main:app --reload
 ```
 
-The service uses `GOOGLE_API_KEY` and `GOOGLE_MODEL` (default `gemini-3.8-flash`). The Google GenAI
-SDK's async client is reused across requests and closed at shutdown. Do not commit `.env` or a real
-key.
+Provider credentials come from environment variables. Do not commit `.env` or a real key.
 
-## Try the real conversation
+## Try the conversation
 
 Use fresh UUIDs for each request. The response's `session_id` and `proposal.id` are authoritative.
 
@@ -65,7 +64,7 @@ curl -s http://localhost:8000/v1/chat \
   -d '{"message":"Find a consultation Downtown on October 6, 2026 after 17:00","session_id":null,"client_message_id":"11111111-1111-4111-8111-111111111111"}'
 ```
 
-Continue with the returned session ID and select `S1` when the model presents it:
+Continue with the returned session ID and select `S1` when the assistant presents it:
 
 ```bash
 curl -s http://localhost:8000/v1/chat \
@@ -86,13 +85,14 @@ can write a booking. Exact proposal and booking fields come from PostgreSQL, not
 
 ## Tests and evaluations
 
-Offline tests inject a scripted fake LLM and never require or contact Google. PostgreSQL integration
-tests are marked `postgres` and require the Compose database. Live behavioral evaluations are opt-in:
+Offline tests inject a scripted fake LLM and never require a live model provider. PostgreSQL
+integration tests are marked `postgres` and require the Compose database. Live behavioral
+evaluations are opt-in:
 
 ```bash
 uv run pytest
 DATABASE_URL=postgresql+asyncpg://appointment:appointment@127.0.0.1:5433/appointment_assistant uv run pytest -m postgres
-GOOGLE_API_KEY=... uv run python evals/run_live.py --case-file evals/cases.jsonl
+uv run python evals/run_live.py --case-file evals/cases.jsonl
 ```
 
 `evals/cases.jsonl` contains stateful expectations, not just expected sentences. Passing the small
@@ -108,10 +108,10 @@ teardown instructions are in
 
 ## Design and boundaries
 
-See [docs/architecture.md](docs/architecture.md) for the request flow, Google function-calling
+See [docs/architecture.md](docs/architecture.md) for the request flow, tool-calling
 protocol, persistence model, confirmation vocabulary, operational limits, documentation sources,
 and replacements required before real scheduling use. The companion Streamlit client is in
-`/Users/alk/Desktop/cc-data-science/Learning/book-assist-client`.
+`../book-assist-client`.
 
 For a component-by-component explanation and change guide, see [docs/development.md](docs/development.md).
 

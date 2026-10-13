@@ -56,7 +56,7 @@ bash scripts/configure-github-staging.sh .staging-bootstrap.env .env
 The first script writes machine-readable values to
 `.staging-bootstrap.env`. The second script creates/updates the GitHub
 `staging` environment in one command, sets all variables, and reads the local
-Google key without printing it. If the local key is unavailable, it writes a
+provider API key without printing it. If the local key is unavailable, it writes a
 placeholder that must be replaced before deployment.
 
 You can also configure the environment manually at:

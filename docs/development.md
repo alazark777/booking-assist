@@ -17,7 +17,7 @@ HTTP request
   -> bearer authentication
   -> request validation and idempotency
   -> session ownership and turn claim
-  -> Google Gemini model call
+  -> LLM model call
        -> search_slots
        -> prepare_booking
        -> exact customer confirmation recorded by application
@@ -33,14 +33,13 @@ identity, ownership, approval, expiry, availability, and writes.
 ### `main.py`
 
 Application factory and lifespan. It constructs the database engine, repository, scheduler, tool
-dispatcher, Google client, and agent service. It also closes shared resources during shutdown.
+dispatcher, LLM client, and agent service. It also closes shared resources during shutdown.
 
 ### `config.py`
 
 Typed environment configuration. The important settings are:
 
-- `GOOGLE_API_KEY`: required for the real model client.
-- `GOOGLE_MODEL`: defaults to `gemini-3.8-flash`.
+- Provider API key and model name for the configured LLM adapter.
 - `DATABASE_URL`: PostgreSQL connection string.
 - `SERVICE_CREDENTIALS`: demo bearer-token-to-principal mapping.
 - Model/tool/deadline limits and the booking-write kill switch.
@@ -57,7 +56,7 @@ confirmation is part of the same conversation.
 ### `agent/`
 
 - `service.py`: bounded model/tool loop and conversation continuation.
-- `tools.py`: allowlisted Gemini tool declarations, Pydantic argument validation, and dispatch.
+- `tools.py`: allowlisted tool declarations, Pydantic argument validation, and dispatch.
 - `prompts/system.md`: version-controlled behavioral instructions.
 
 The loop preserves the model's function-call content, executes only registered Python handlers,
@@ -66,9 +65,9 @@ model requests and four tool calls per turn.
 
 ### `adapters/google_client.py`
 
-The only Google-specific layer. It creates the async `google-genai` client, sends Gemini requests,
-extracts function calls and usage, maps provider failures to safe application errors, and closes
-the client at shutdown. Replacing Gemini should primarily affect this adapter and configuration.
+The current LLM provider adapter. It sends model requests, extracts function calls and usage,
+maps provider failures to safe application errors, and closes the client at shutdown. Swapping
+providers should primarily affect this adapter and configuration.
 
 ### `adapters/database.py`
 
@@ -101,7 +100,7 @@ surrounding whitespace. The application records approval before the model receiv
 Configures JSON stdout logs and OpenTelemetry request, model, and tool spans. It intentionally does
 not log full prompts, conversations, credentials, or customer details by default. When
 `LANGFUSE_TRACING_ENABLED=true` and valid Cloud credentials are supplied, it also emits an
-`appointment-chat` trace with nested Gemini generations and scheduler tool observations. Set
+`appointment-chat` trace with nested model generations and scheduler tool observations. Set
 `LANGFUSE_CAPTURE_CONTENT=true` only when prompt and response content should be retained. See
 [Langfuse Cloud setup](langfuse-cloud.md).
 

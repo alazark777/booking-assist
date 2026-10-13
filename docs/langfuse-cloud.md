@@ -28,7 +28,7 @@ podman compose up --build
 Send a chat message from the Streamlit client and open the Langfuse project’s **Traces** view. Each turn is grouped by `session_id` and associated with the authenticated customer. The trace contains:
 
 - an `appointment-chat` agent observation;
-- one `google-gemini.generate` generation per model call, including token usage;
+- one model generation per LLM call, including token usage;
 - one child tool observation per scheduler tool call; and
 - the Langfuse trace ID in the API response and `X-Trace-Id` header.
 
